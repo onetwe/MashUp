@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://a.amap.com/jsapi_demos/static/demo-center/css/demo-center.css"/>
+    <link rel="stylesheet" type="text/css" href="https://a.amap.com/jsapi_demos/static/demo-center/css/prety-json.css">
+    <style>
+        html,
+        body,
+        #container {
+            width: 100%;
+            height: 100%;
+        }
+
+        .weather {
+            width: 5rem;
+            display: inline-block;
+            padding-left: 0.5rem;
+        }
+    </style>
+
+    <script src="/js/bootstrap.min.js"></script>
+    <script src="/js/jquery-3.3.1.min.js"></script>
+    <script type="text/javascript"
+            src="https://a.amap.com/jsapi_demos/static/demo-center/js/jquery-1.11.1.min.js"></script>
+    <script type="text/javascript"
+            src="https://a.amap.com/jsapi_demos/static/demo-center/js/underscore-min.js"></script>
+    <script type="text/javascript" src="https://a.amap.com/jsapi_demos/static/demo-center/js/backbone-min.js"></script>
+    <script type="text/javascript" src='https://a.amap.com/jsapi_demos/static/demo-center/js/prety-json.js'></script>
+    <!-- 加载地图JSAPI脚本 -->
+    <script src="https://webapi.amap.com/maps?v=1.4.14&key=a16132cbc058de00dd4deb0c34eac5a4"></script>
+
+    <title>地图显示</title>
+</head>
+
+<body>
+<div id="container"></div>
+<div class="info" style="display: block">
+    <h4>所在行政区</h4>
+    <hr>
+    <p id="map-city"></p>
+</div>
+<div class="info" style="display: block;margin-top: 170px">
+    <h4>实时天气</h4>
+    <hr>
+    <p id='timely_forecast'></p>
+</div>
+<div class="info" style="display: block;margin-top: 360px">
+    <h4>预报天气</h4>
+    <hr>
+    <p id='forecast'></p>
+</div>
+<script>
+    //初始化地图
+    var map = new AMap.Map('container', {
+        resizeEnable: true, //是否监控地图容器尺寸变化
+        zoom: 11, //初始地图级别
+    });
+
+    //获取并展示当前城市信息
+    function logMapinfo() {
+        map.getCity(function (info) {
+            var node = new PrettyJSON.view.Node({
+                el: document.querySelector("#map-city"),
+                data: info
+            });
+            var city = info["city"] == "" ? info["district"] : info["city"];
+            getWeather(city);
+        });
+    }
+
+    logMapinfo();
+
+    //绑定地图移动事件
+    map.on('moveend', logMapinfo);
+
+    function getWeather(city) {
+        AMap.plugin('AMap.Weather', function () {
+            var weather = new AMap.Weather();
+            //查询实时天气信息, 查询的城市到行政级别的城市，如朝阳区、杭州市
+            weather.getLive(city, function (err, data) {
+                if (!err) {
+                    var str = [];
+                    str.push('城市/区：' + data.city);
+                    str.push('天气：' + data.weather);
+                    str.push('温度：' + data.temperature + '℃');
+                    str.push('风向：' + data.windDirection);
+                    str.push('风力：' + data.windPower + ' 级');
+                    str.push('空气湿度：' + data.humidity);
+                    str.push('发布时间：' + data.reportTime);
+                    document.getElementById('timely_forecast').innerHTML = str.join('<br>');
+                }
+            });
+            //未来4天天气预报
+            weather.getForecast(city, function (err, data) {
+                if (err) {
+                    return;
+                }
+                var str = [];
+                for (var i = 0, dayWeather; i < data.forecasts.length; i++) {
+                    dayWeather = data.forecasts[i];
+                    str.push(dayWeather.date + ' <span class="weather">' + dayWeather.dayWeather + '</span> ' + dayWeather.nightTemp + '~' + dayWeather.dayTemp + '℃');
+                }
+                document.getElementById('forecast').innerHTML = str.join('<br>');
+            });
+        });
+    }
+</script>
+
+</body>
+</html>
